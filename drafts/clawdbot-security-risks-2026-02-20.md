@@ -11,7 +11,7 @@ Internal Links:
  - https://sythelabs.com/contact
 External Links:
  - https://www.paloaltonetworks.com/blog/network-security/why-moltbot-may-signal-ai-crisis/
- - https://owasp.org/www-project-top-10-for-large-language-model-applications/
+ - https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/
  - https://www.wiz.io/blog/exposed-moltbook-database-reveals-millions-of-api-keys
  - https://securityscorecard.com/blog/beyond-the-hype-moltbots-real-risk-is-exposed-infrastructure-not-ai-superintelligence/
 ---
@@ -66,7 +66,7 @@ Configuration parameters also leak through mDNS broadcasts on port 5353. Anyone 
 
 ClawdBot stores API keys, passwords, and OAuth tokens in plaintext Markdown and JSON files. The `.env` file contains LLM API keys. The `creds.json` file stores messaging platform session credentials. Sensitive paths include `~/.openclaw/`, `~/clawd/`, and `~/.clawdbot/`.
 
-As a result, infostealers have already adapted to target these directories specifically. RedLine Stealer uses its FileGrabber module to sweep `%UserProfile%\.clawdbot\*.json`. Lumma Stealer applies heuristics to find files named "secret" or "config." Noma Security demonstrated a complete credential exfiltration attack chain in under 30 seconds.
+As a result, infostealers have already adapted to target these directories specifically. RedLine Stealer uses its FileGrabber module to sweep `%UserProfile%\.clawdbot\*.json`. Lumma Stealer applies heuristics to find files named "secret" or "config." Noma Security demonstrated a complete data exfiltration kill chain in under 30 seconds, extracting tokens, API keys, and cryptocurrency seed phrases from a running instance.
 
 Beyond the immediate credential theft, attackers who access these files gain months of conversation history, planning context, behavioral patterns, and social graphs from every connected messaging platform.
 
@@ -92,14 +92,15 @@ ClawdBot reads emails, messages, and web pages as part of its normal operation. 
 
 [Palo Alto Networks](https://www.paloaltonetworks.com/blog/network-security/why-moltbot-may-signal-ai-crisis/) identified persistent memory as the critical amplifier of these risks. Malicious instructions can persist in ClawdBot's memory for weeks, enabling what researchers call "delayed multi-turn attack chains." In one demonstrated attack, a single crafted email extracted a private cryptocurrency key from a running OpenClaw instance.
 
-Palo Alto Networks described four compounding risk factors that make ClawdBot uniquely dangerous:
+Palo Alto Networks expanded on Simon Willison's "lethal trifecta" framework for AI agents, identifying three compounding risk factors that apply to ClawdBot:
 
 1. Access to private data (credentials, personal information, business data)
 2. Exposure to untrusted content (web, messages, third-party integrations)
 3. Ability to communicate externally (send messages, execute commands)
-4. Persistent memory that transforms attacks into stateful, delayed-execution chains
 
-Consequently, this architecture maps to all 10 categories in the [OWASP Top 10 for Agentic Applications](https://owasp.org/www-project-top-10-for-large-language-model-applications/), including prompt injection, insecure tool invocation, excessive autonomy, and supply chain model risks.
+Palo Alto Networks argued that ClawdBot's persistent memory acts as an accelerant, amplifying each of these risks by enabling stateful, delayed-execution attacks.
+
+Consequently, [Palo Alto Networks mapped](https://www.paloaltonetworks.com/blog/network-security/why-moltbot-may-signal-ai-crisis/) this architecture to all 10 categories in the [OWASP Top 10 for Agentic Applications](https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/), describing it as a "full spectrum failure" across prompt injection, insecure tool invocation, excessive autonomy, and supply chain model risks.
 
 ## How the ClawHavoc supply chain attack compromised thousands of users
 
@@ -139,7 +140,7 @@ Multiple major companies and industry analysts have taken firm positions against
 
 Furthermore, the shadow AI problem compounds these risks. According to Noma Security, 53% of enterprise customers unknowingly granted ClawdBot privileged access over a single weekend. Traditional security tools fail to recognize AI-specific architectural patterns, so deployments often go undetected by existing monitoring.
 
-Google VP of Security Engineering Heather Adkins called ClawdBot "an infostealer malware disguised as an AI personal assistant." While that characterization is pointed, the architectural parallels are worth considering. Like infostealers, ClawdBot harvests credentials, maintains persistence, communicates externally, and operates with broad system access. The difference is intent, not capability.
+Security researcher Yassine Aboukir called ClawdBot "an infostealer malware disguised as an AI personal assistant," while Google's Heather Adkins, VP of Security Engineering, warned bluntly: "Don't run Clawdbot." While those characterizations are pointed, the architectural parallels are worth considering. Like infostealers, ClawdBot harvests credentials, maintains persistence, communicates externally, and operates with broad system access. The difference is intent, not capability.
 
 Additionally, some exposed instance IPs have been correlated with infrastructure attributed to known APT groups, including Kimsuky, APT28, Salt Typhoon, Sandworm, and APT41 (according to SecurityScorecard). While this correlation does not prove nation-state usage of ClawdBot, it demonstrates that sophisticated threat actors are aware of the attack surface it creates.
 
@@ -156,7 +157,7 @@ Take these actions immediately:
 3. **Forensically review the host machine** for indicators of compromise
 4. **Audit message history** across all connected platforms for unauthorized activity
 5. **Rotate all credentials**, especially if running versions prior to v2026.1.29
-6. **Update to v2026.2.1 or later** to patch known CVEs
+6. **Update to v2026.2.14 or later** to patch known CVEs
 
 ### Detection and blocking
 
@@ -173,7 +174,7 @@ To identify ClawdBot on your systems:
 
 If you decide to proceed after evaluating OpenClaw security risks, use it in a controlled capacity with a thorough [security assessment](https://sythelabs.com/process):
 
-1. Bind to localhost only: set `gateway.bind: "127.0.0.1"` (never `0.0.0.0`)
+1. Bind to localhost only: set `gateway.bind: "loopback"` (the default; never use `"lan"` or `"auto"` on untrusted networks)
 2. Enable strong authentication on the gateway
 3. Use Tailscale, VPN, or Cloudflare Tunnel for any remote access
 4. Block port 18789 at the network perimeter
@@ -193,7 +194,7 @@ If ClawdBot runs on systems that process regulated data, the unauthorized access
 
 ### Is ClawdBot safe to use?
 
-In its default configuration, ClawdBot is not safe. It ships with authentication disabled, credentials stored in plaintext, and the service exposed to all network interfaces. With proper hardening (localhost binding, authentication, Docker sandboxing, and restricted tool access), the risk decreases significantly. However, even in hardened deployments, the supply chain risks from ClawHub skills and the architectural exposure to [prompt injection](https://sythelabs.com/blog/understanding-llm-interactions-a-technical-guide) remain significant concerns.
+In its default configuration, ClawdBot is not safe. It ships with authentication disabled, credentials stored in plaintext, and Docker deployments exposed to all network interfaces. With proper hardening (localhost binding, authentication, Docker sandboxing, and restricted tool access), the risk decreases significantly. However, even in hardened deployments, the supply chain risks from ClawHub skills and the architectural exposure to [prompt injection](https://sythelabs.com/blog/understanding-llm-interactions-a-technical-guide) remain significant concerns.
 
 ### What is the difference between ClawdBot, Moltbot, and OpenClaw?
 
